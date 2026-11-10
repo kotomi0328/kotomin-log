@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict'),M=require('./model.js');
+const r={...M.blank(),paid:22,free:11,deco:14};
+assert.deepEqual(M.calculate(r),{ordinary:22,total:47,estimate:16500});
+assert.deepEqual(M.calculate({...r,included:true}),{ordinary:8,total:33,estimate:6000});
+assert.throws(()=>M.calculate({...r,paid:10,included:true}));
+assert.equal(M.calculate({...r,deco:null,included:true}).estimate,null);
+assert.equal(M.calculate({...r,deco:null}).estimate,16500);
+assert.equal(M.calculate(M.blank()).total,null);
+assert.equal(M.calculate({...M.blank(),paid:0,free:0,deco:0}).total,0);
+const records={'2026-11-10-nakano':r,'2026-11-03-shibuya':{...M.blank(),paid:0,free:0,deco:0,confirmedPaid:0}};
+const s=M.monthly('2026-11',records);assert.equal(s.total,47);assert.equal(s.missing.length,1);assert.equal(s.unknown.total,1);assert.equal(s.unknown.confirmedPaid,2);assert.equal(s.estimate,16500);
+assert.equal(M.monthly('2026-10',records).total,0);assert.equal(M.monthly('2026-10',records).unknown.total,1);
+assert.equal(M.calculate({...r,price:2000,share:40}).estimate,17600);
+const state={version:1,cheki:records,attendance:{'2026-11-10-nakano':{names:['たろうくん'],unknown:2}}};assert(M.validState(JSON.parse(JSON.stringify(state))));assert.equal(JSON.parse(JSON.stringify(state)).cheki['2026-11-03-shibuya'].confirmedDeco,null);
+assert(!M.validState({...state,version:99}));assert(!M.valid({...r,paid:-1}));assert(!M.valid({...r,paid:0.5}));
+assert.equal(M.monthly('2026-11',{'2026-11-10-nakano':{...M.blank(),paid:5}}).total,5);
+assert.equal(M.monthly('2026-11',{'2026-11-10-nakano':{...M.blank(),included:true,deco:3}}).total,3);
+console.log('PASS: separate/inclusive deco, unknown vs zero, partial/month boundaries, rate changes, confirmed-zero/null, persistence schema and invalid values');
